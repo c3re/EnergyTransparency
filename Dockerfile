@@ -1,6 +1,6 @@
 FROM debian:13
 RUN apt update && apt upgrade -y
-RUN apt install -y curl jq mosquitto-clients
+RUN apt install -y curl jq mosquitto-clients bc
 ENV TZ="Europe/Berlin"
 
 ADD run /usr/local/bin
