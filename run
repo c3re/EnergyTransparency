@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+l() {
+	echo "$(date +"%Y-%m-%d %H:%M:%S"): $*" >&2
+}
+
+send() {
+	power_price="$(mosquitto_sub -h mqtt.c3re.de -t "c3re/huette/energy/strompreis" -C 1 -W 5)"
+	power_price="${power_price:-0.30}"
+	power_price=$(printf "%.2f" "$power_price")
+
+	QUERY='(max_over_time(energy{location="Hütte", type="Energymeter", unit="wh"}[1d]) - min_over_time(energy{location="Hütte", type="Energymeter", unit="wh"}[1d])) /1000'
+	RESULT="$(curl --get -s --data-urlencode "query=$QUERY" 'https://prom.c3re.de/api/v1/query')"
+
+	STATUS="$(echo "$RESULT" | jq -r '.status')"
+
+	if [ "$STATUS" != "success" ]; then
+		l "Error: Query failed"
+		exit 1
+	fi
+
+	VALUE="$(echo "$RESULT" | jq -r '.data.result[0].value[1]')"
+	price=$(echo "$VALUE * $power_price" | bc -l)
+	price=$(printf "%.2f" "$price")
+
+	l "VALUE: $VALUE kWh in the last 24h"
+
+	COMMAND='{"roomid": "!KKKhYNRTHclBCbhxYt:matrix.c3re.de","message": "In der Hütte sind in den letzten 24 Stunden '"$VALUE"'kWh verbraucht worden, das ergibt beim aktuellen Strompreis von '"$power_price"'€ / kwh Kosten in Höhe von '"$price"'€."}'
+
+	l "$COMMAND"
+	set -x
+	echo "$COMMAND" | mosquitto_pub -h mqtt.c3re.de -t "bot/matrix/actions/roommessage" -s -u "$MQTT_USER" -P "$MQTT_PASS"
+	set +x
+}
+
+till12() {
+	CHECKFILE="/data/lastrun"
+	if [ ! -f "$CHECKFILE" ]; then
+		touch "$CHECKFILE" -d "1970-01-01 00:00:00"
+	fi
+	NOW="$(date +%s)"
+	LASTRUN="$(date -r "$CHECKFILE" +%s)"
+
+	# check that lastrun is at least 20h in the past
+	if [ $((NOW - LASTRUN)) -ge 72000 ]; then
+		if [ "$(date +%H)" -eq 20 ]; then
+			send
+			touch "$CHECKFILE"
+			l "Sending message, sleeping 20h"
+			sleep 20h
+		else
+			l "it's been a while but it's not noon yet, waiting 1m"
+			sleep 1m
+		fi
+	else
+		l "sent recently, waiting 1h"
+		sleep 1h
+	fi
+}
+
+while true; do
+	sleep 15 &
+	till12
+	wait
+done
