@@ -28,9 +28,9 @@ send() {
 	COMMAND='{"roomid": "!KKKhYNRTHclBCbhxYt:matrix.c3re.de","message": "In der Hütte sind in den letzten 24 Stunden '"$VALUE"'kWh verbraucht worden, das ergibt beim aktuellen Strompreis von '"$power_price"'€ / kwh Kosten in Höhe von '"$price"'€."}'
 
 	l "$COMMAND"
-	set -x
+
 	echo "$COMMAND" | mosquitto_pub -h mqtt.c3re.de -t "bot/matrix/actions/roommessage" -s -u "$MQTT_USER" -P "$MQTT_PASS"
-	set +x
+
 }
 
 till12() {
@@ -58,6 +58,7 @@ till12() {
 	fi
 }
 
+set -x
 while true; do
 	sleep 15 &
 	till12
