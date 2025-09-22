@@ -25,7 +25,7 @@ send() {
 
 	l "VALUE: $VALUE kWh in the last 24h"
 
-	COMMAND='{"roomid": "'"$ROOM_ID"'","message": "In der Hütte sind in den letzten 24 Stunden '"$VALUE"'kWh verbraucht worden, das ergibt beim aktuellen Strompreis von '"$power_price"'€ / kwh Kosten in Höhe von '"$price"'€."}'
+	COMMAND='{"roomid": "'"$ROOM_ID"'","message": "In der Hütte sind in den letzten 24 Stunden '"$VALUE"'kWh Strom genutzt worden, das ergibt beim aktuellen Strompreis von '"$power_price"'€ / kwh Kosten in Höhe von '"$price"'€."}'
 
 	l "$COMMAND"
 
