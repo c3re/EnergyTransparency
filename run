@@ -43,7 +43,7 @@ till12() {
 
 	# check that lastrun is at least 20h in the past
 	if [ $((NOW - LASTRUN)) -ge 72000 ]; then
-		if [ "$(date +%H)" -eq 20 ]; then
+		if [ "$(date +%H)" -eq 21 ]; then
 			send
 			touch "$CHECKFILE"
 			l "Sending message, sleeping 20h"
