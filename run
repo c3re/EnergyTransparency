@@ -52,7 +52,8 @@ send() {
 * Gesamt: $VALUE_TOTAL kWh, Kosten: $PRICE_TOTAL €
 * Kühlschrank: $VALUE_FRIDGE kWh, Kosten: $PRICE_FRIDGE €
 * Serverschrank: $VALUE_SERVER kWh, Kosten: $PRICE_SERVER €
-* Sonstiges: $VALUE_OTHERS kWh, Kosten: $PRICE_OTHERS €"
+* Sonstiges: $VALUE_OTHERS kWh, Kosten: $PRICE_OTHERS €
+Details unter: $DETAILS_LINK"
 
 	l "message: $TEXT"
 
