@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
 l() {
-	echo "$(date +"%Y-%m-%d %H:%M:%S"): $*" >&2
+	PREFIX="$(date +"%Y-%m-%d %H:%M:%S"): "
+	PREFIX_LENGTH=${#PREFIX}
+
+	while IFS= read -r line; do
+		echo "${PREFIX}${line}"
+		PREFIX="$(printf '%*s' "$PREFIX_LENGTH" " ")"
+	done <<<"$1"
 }
 
-send() {
-	power_price="$(mosquitto_sub -h mqtt.c3re.de -t "c3re/huette/energy/strompreis" -C 1 -W 5)"
-	power_price="${power_price:-0.30}"
-	power_price=$(printf "%.2f" "$power_price")
+fetchQuery() {
 
-	QUERY='(max_over_time(energy{location="Hütte", type="Energymeter", unit="wh"}[1d]) - min_over_time(energy{location="Hütte", type="Energymeter", unit="wh"}[1d])) /1000'
+	QUERY="$1"
 	RESULT="$(curl --get -s --data-urlencode "query=$QUERY" 'https://prom.c3re.de/api/v1/query')"
-
 	STATUS="$(echo "$RESULT" | jq -r '.status')"
 
 	if [ "$STATUS" != "success" ]; then
@@ -19,13 +21,42 @@ send() {
 		exit 1
 	fi
 
-	VALUE="$(echo "$RESULT" | jq -r '.data.result[0].value[1]')"
-	price=$(echo "$VALUE * $power_price" | bc -l)
-	price=$(printf "%.2f" "$price")
+	echo "$RESULT" | jq -r '.data.result[0].value[1]'
+}
 
-	l "VALUE: $VALUE kWh in the last 24h"
+send() {
+	POWER_PRICE="$(mosquitto_sub -h mqtt.c3re.de -t "c3re/huette/energy/strompreis" -C 1 -W 5)"
+	POWER_PRICE="${POWER_PRICE:-0.30}"
 
-	COMMAND='{"roomid": "'"$ROOM_ID"'","message": "In der Hütte sind in den letzten 24 Stunden '"$VALUE"'kWh Strom genutzt worden, das ergibt beim aktuellen Strompreis von '"$power_price"'€ / kwh Kosten in Höhe von '"$price"'€. [Details in grafana]('"$DETAILS_LINK"')"}'
+	QUERY_TOTAL='(max_over_time(energy{location="Hütte", type="Energymeter", unit="wh"}[1d]) - min_over_time(energy{location="Hütte", type="Energymeter", unit="wh"}[1d])) /1000'
+	QUERY_FRIDGE='(max_over_time(energy{location="Hütte", description="Kuehlschrank", unit="Wh"}[1d]) - min_over_time(energy{location="Hütte", description="Kuehlschrank", unit="Wh"}[1d]))/1000'
+	QUERY_SERVER='(max_over_time(energy{location="Hütte", description="NOC-Serverschrank", unit="Wh"}[1d]) - min_over_time(energy{location="Hütte", description="NOC-Serverschrank", unit="Wh"}[1d]))/1000'
+
+	VALUE_TOTAL="$(fetchQuery "$QUERY_TOTAL")"
+	PRICE_TOTAL=$(echo "$VALUE_TOTAL * $POWER_PRICE" | bc -l)
+	PRICE_TOTAL=$(printf "%.2f" "$PRICE_TOTAL")
+
+	VALUE_FRIDGE="$(fetchQuery "$QUERY_FRIDGE")"
+	PRICE_FRIDGE=$(echo "$VALUE_FRIDGE * $POWER_PRICE" | bc -l)
+	PRICE_FRIDGE=$(printf "%.2f" "$PRICE_FRIDGE")
+
+	VALUE_SERVER="$(fetchQuery "$QUERY_SERVER")"
+	PRICE_SERVER=$(echo "$VALUE_SERVER * $POWER_PRICE" | bc -l)
+	PRICE_SERVER=$(printf "%.2f" "$PRICE_SERVER")
+
+	VALUE_OTHERS=$(echo "$VALUE_TOTAL - $VALUE_FRIDGE - $VALUE_SERVER" | bc -l)
+	PRICE_OTHERS=$(echo "$VALUE_OTHERS * $POWER_PRICE" | bc -l)
+	PRICE_OTHERS=$(printf "%.2f" "$PRICE_OTHERS")
+
+	TEXT="Stromverbrauch in der Hütte in den Letzten 24h:
+* Gesamt: $VALUE_TOTAL kWh, Kosten: $PRICE_TOTAL €
+* Kühlschrank: $VALUE_FRIDGE kWh, Kosten: $PRICE_FRIDGE €
+* Serverschrank: $VALUE_SERVER kWh, Kosten: $PRICE_SERVER €
+* Sonstiges: $VALUE_OTHERS kWh, Kosten: $PRICE_OTHERS €"
+
+	l "message: $TEXT"
+
+	COMMAND="$(echo -n "$TEXT" | jq -Rs '{"roomid":"'"$ROOM_ID"'","text":.}')"
 
 	l "$COMMAND"
 
@@ -41,7 +72,6 @@ till12() {
 	NOW="$(date +%s)"
 	LASTRUN="$(date -r "$CHECKFILE" +%s)"
 
-	# check that lastrun is at least 20h in the past
 	if [ $((NOW - LASTRUN)) -ge 72000 ]; then
 		if [ "$(date +%H)" -eq 12 ]; then
 			send
@@ -58,9 +88,8 @@ till12() {
 	fi
 }
 
-set -x
 while true; do
-	sleep 15 &
+	sleep 1m &
 	till12
 	wait
 done
