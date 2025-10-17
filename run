@@ -34,14 +34,17 @@ send() {
 
 	VALUE_TOTAL="$(fetchQuery "$QUERY_TOTAL")"
 	PRICE_TOTAL=$(echo "$VALUE_TOTAL * $POWER_PRICE" | bc -l)
+	VALUE_TOTAL="$(printf "%.1f" "$VALUE_TOTAL")"
 	PRICE_TOTAL=$(printf "%.2f" "$PRICE_TOTAL")
 
 	VALUE_FRIDGE="$(fetchQuery "$QUERY_FRIDGE")"
 	PRICE_FRIDGE=$(echo "$VALUE_FRIDGE * $POWER_PRICE" | bc -l)
+	VALUE_FRIDGE=$(printf "%.1f" "$VALUE_FRIDGE")
 	PRICE_FRIDGE=$(printf "%.2f" "$PRICE_FRIDGE")
 
 	VALUE_SERVER="$(fetchQuery "$QUERY_SERVER")"
 	PRICE_SERVER=$(echo "$VALUE_SERVER * $POWER_PRICE" | bc -l)
+	VALUE_SERVER=$(printf "%.1f" "$VALUE_SERVER")
 	PRICE_SERVER=$(printf "%.2f" "$PRICE_SERVER")
 
 	VALUE_OTHERS=$(echo "$VALUE_TOTAL - $VALUE_FRIDGE - $VALUE_SERVER" | bc -l)
@@ -53,7 +56,7 @@ send() {
 * Kühlschrank (BOC): $VALUE_FRIDGE kWh, Kosten: $PRICE_FRIDGE €
 * Serverschrank (NOC): $VALUE_SERVER kWh, Kosten: $PRICE_SERVER €
 * Sonstiges: $VALUE_OTHERS kWh, Kosten: $PRICE_OTHERS €
-Details unter: $DETAILS_LINK"
+Details in [Grafana]($DETAILS_LINK)"
 
 	l "message: $TEXT"
 
