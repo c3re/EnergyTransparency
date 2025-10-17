@@ -61,7 +61,7 @@ Details unter: $DETAILS_LINK"
 
 	while read -r line; do
 
-		COMMAND="$(echo -n "$TEXT" | jq -Rs '{"roomid":"'"$ROOM_ID"'","text":.}')"
+		COMMAND="$(echo -n "$line" | jq -Rs '{"roomid":"'"$ROOM_ID"'","text":.}')"
 
 		l "$COMMAND"
 
