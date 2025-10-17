@@ -55,13 +55,19 @@ send() {
 * Sonstiges: $VALUE_OTHERS kWh, Kosten: $PRICE_OTHERS €
 Details unter: $DETAILS_LINK"
 
+
+
 	l "message: $TEXT"
 
-	COMMAND="$(echo -n "$TEXT" | jq -Rs '{"roomid":"'"$ROOM_ID"'","text":.}')"
+	while read -r line; do
 
-	l "$COMMAND"
+		COMMAND="$(echo -n "$TEXT" | jq -Rs '{"roomid":"'"$ROOM_ID"'","text":.}')"
 
-	echo "$COMMAND" | mosquitto_pub -h mqtt.c3re.de -t "bot/matrix/actions/roommessage" -s -u "$MQTT_USER" -P "$MQTT_PASS"
+		l "$COMMAND"
+
+		echo "$COMMAND" | mosquitto_pub -h mqtt.c3re.de -t "bot/matrix/actions/roommessage" -s -u "$MQTT_USER" -P "$MQTT_PASS"
+		sleep 1
+	done <<<"$TEXT"
 
 }
 
