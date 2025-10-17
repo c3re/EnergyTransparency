@@ -50,8 +50,8 @@ send() {
 
 	TEXT="Stromverbrauch in der Hütte in den Letzten 24h:
 * Gesamt: $VALUE_TOTAL kWh, Kosten: $PRICE_TOTAL €
-* Kühlschrank: $VALUE_FRIDGE kWh, Kosten: $PRICE_FRIDGE €
-* Serverschrank: $VALUE_SERVER kWh, Kosten: $PRICE_SERVER €
+* Kühlschrank (BOC): $VALUE_FRIDGE kWh, Kosten: $PRICE_FRIDGE €
+* Serverschrank (NOC): $VALUE_SERVER kWh, Kosten: $PRICE_SERVER €
 * Sonstiges: $VALUE_OTHERS kWh, Kosten: $PRICE_OTHERS €
 Details unter: $DETAILS_LINK"
 
