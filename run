@@ -52,10 +52,10 @@ send() {
 	PRICE_OTHERS=$(printf "%.2f" "$PRICE_OTHERS")
 
 	TEXT="Stromverbrauch in der Hütte in den Letzten 24h:
-* Gesamt: $VALUE_TOTAL kWh, Kosten: $PRICE_TOTAL €
-* Kühlschrank (BOC): $VALUE_FRIDGE kWh, Kosten: $PRICE_FRIDGE €
-* Serverschrank (NOC): $VALUE_SERVER kWh, Kosten: $PRICE_SERVER €
-* Sonstiges: $VALUE_OTHERS kWh, Kosten: $PRICE_OTHERS €
+* Gesamt: $(echo "$VALUE_TOTAL" | tr . ,) kWh, Kosten: $(echo "$PRICE_TOTAL" | tr . ,) €
+* Kühlschrank (BOC): $(echo "$VALUE_FRIDGE" | tr . ,) kWh, Kosten: $(echo "$PRICE_FRIDGE" | tr . ,) €
+* Serverschrank (NOC): $(echo "$VALUE_SERVER" kWh | tr . ,), Kosten: $(echo "$PRICE_SERVER" | tr . ,) €
+* Sonstiges: $(echo "$VALUE_OTHERS" | tr . ,) kWh, Kosten: $(echo "$PRICE_OTHERS" | tr . ,) €
 Details in [Grafana]($DETAILS_LINK)"
 
 	l "message: $TEXT"
@@ -77,7 +77,7 @@ till12() {
 	LASTRUN="$(date -r "$CHECKFILE" +%s)"
 
 	if [ $((NOW - LASTRUN)) -ge 72000 ]; then
-		if [ "$(date +%H)" -eq 12 ]; then
+		if [ "$(date +%H)" -eq 12 ] || [ "${1:-prod}" = "debug" ]; then
 			send
 			touch "$CHECKFILE"
 			l "Sending message, sleeping 20h"
@@ -92,8 +92,9 @@ till12() {
 	fi
 }
 
+LC_ALL=C
 while true; do
 	sleep 1m &
-	till12
+	till12 "$1"
 	wait
 done
